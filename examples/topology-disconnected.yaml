@@ -1,0 +1,11 @@
+clouds:
+  - aws
+  - azure
+
+services:
+  aws-api:
+    depends_on:
+      - aws
+  azure-api:
+    depends_on:
+      - azure

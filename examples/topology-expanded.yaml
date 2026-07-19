@@ -1,0 +1,42 @@
+clouds:
+  - id: aws
+    name: Amazon Web Services
+    metadata:
+      regions:
+        - us-east-1
+        - us-west-2
+      critical: true
+  - id: azure
+    name: Microsoft Azure
+    metadata:
+      regions:
+        - eastus
+
+networks:
+  edge-network:
+    provider: cloudflare
+    metadata:
+      tier: edge
+
+identity:
+  - id: okta
+    name: Okta Workforce Identity
+    metadata:
+      tenant: production
+
+services:
+  control-plane:
+    provider: internal
+    metadata:
+      owner: platform
+      slo: 99.9
+    depends_on:
+      - aws
+      - edge-network
+      - okta
+
+storage:
+  audit-logs:
+    provider: aws
+    writes_to:
+      - aws

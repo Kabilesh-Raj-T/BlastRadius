@@ -1,0 +1,13 @@
+services:
+  frontend:
+    depends_on:
+      - api
+  api:
+    depends_on:
+      - worker
+  worker:
+    depends_on:
+      - frontend
+
+clouds:
+  - aws

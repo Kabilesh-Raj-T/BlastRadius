@@ -1,0 +1,19 @@
+clouds:
+  - aws
+  - azure
+
+dns:
+  - cloudflare
+
+identity:
+  - okta
+
+services:
+  frontend:
+    depends_on:
+      - cloudflare
+      - okta
+
+database:
+  depends_on:
+    - aws

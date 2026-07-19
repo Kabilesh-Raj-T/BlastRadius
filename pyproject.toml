@@ -1,0 +1,116 @@
+[build-system]
+requires = ["hatchling>=1.25"]
+build-backend = "hatchling.build"
+
+[project]
+name = "chokepoint"
+version = "1.0.0"
+description = "Production-grade open-source infrastructure dependency analyzer."
+readme = "README.md"
+requires-python = ">=3.12"
+license = { file = "LICENSE" }
+authors = [
+  { name = "ChokePoint Contributors" },
+]
+keywords = [
+  "infrastructure",
+  "dependency-analysis",
+  "graph",
+  "resilience",
+  "supply-chain",
+]
+classifiers = [
+  "Development Status :: 5 - Production/Stable",
+  "Intended Audience :: Developers",
+  "Intended Audience :: Information Technology",
+  "License :: OSI Approved :: MIT License",
+  "Programming Language :: Python :: 3",
+  "Programming Language :: Python :: 3.12",
+  "Programming Language :: Python :: 3.13",
+  "Typing :: Typed",
+]
+dependencies = [
+  "click>=8.1,<9",
+  "networkx>=3.4,<4",
+  "pydantic>=2.10,<3",
+  "python-hcl2>=7.0,<8",
+  "PyYAML>=6.0,<7",
+  "rich>=13.9,<14",
+]
+
+[project.urls]
+Homepage = "https://github.com/chokepoint/chokepoint"
+Documentation = "https://github.com/chokepoint/chokepoint/tree/main/docs"
+Repository = "https://github.com/chokepoint/chokepoint"
+Issues = "https://github.com/chokepoint/chokepoint/issues"
+Changelog = "https://github.com/chokepoint/chokepoint/blob/main/CHANGELOG.md"
+
+[project.scripts]
+chokepoint = "chokepoint.cli:main"
+
+[project.optional-dependencies]
+dev = [
+  "black==24.10.0",
+  "mypy==1.14.1",
+  "pre-commit==4.0.1",
+  "pytest==8.3.5",
+  "pytest-cov==6.0.0",
+  "ruff==0.8.6",
+]
+
+[tool.hatch.build.targets.wheel]
+packages = ["src/chokepoint"]
+
+[tool.uv]
+package = true
+
+[tool.black]
+line-length = 88
+target-version = ["py312"]
+
+[tool.ruff]
+line-length = 88
+target-version = "py312"
+src = ["src", "tests"]
+
+[tool.ruff.lint]
+select = [
+  "B",
+  "C4",
+  "D",
+  "E",
+  "F",
+  "I",
+  "N",
+  "PL",
+  "RUF",
+  "SIM",
+  "UP",
+  "W",
+]
+ignore = [
+  "D203",
+  "D213",
+]
+
+[tool.ruff.lint.per-file-ignores]
+"tests/**/*.py" = ["D100", "D103"]
+
+[tool.ruff.lint.pydocstyle]
+convention = "google"
+
+[tool.mypy]
+python_version = "3.12"
+strict = true
+mypy_path = "src"
+packages = ["chokepoint"]
+warn_unused_configs = true
+
+[[tool.mypy.overrides]]
+module = ["hcl2", "networkx", "networkx.*", "yaml", "yaml.*"]
+ignore_missing_imports = true
+
+[tool.pytest.ini_options]
+minversion = "8.0"
+addopts = "-ra --strict-config --strict-markers --cov=chokepoint --cov-report=term-missing --cov-fail-under=95"
+testpaths = ["tests"]

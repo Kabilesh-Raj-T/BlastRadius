@@ -1,0 +1,41 @@
+clouds:
+  - aws
+
+dns:
+  - cloudflare
+
+identity:
+  - okta
+
+services:
+  frontend:
+    depends_on:
+      - api
+      - cloudflare
+  api:
+    depends_on:
+      - okta
+      - redis
+      - postgres
+  billing:
+    depends_on:
+      - api
+      - invoices
+
+caches:
+  redis:
+    provider: aws
+    depends_on:
+      - aws
+
+databases:
+  postgres:
+    provider: aws
+    depends_on:
+      - aws
+
+queues:
+  invoices:
+    provider: aws
+    depends_on:
+      - aws

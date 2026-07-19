@@ -1,0 +1,39 @@
+clouds:
+  - aws
+  - azure
+  - gcp
+
+dns:
+  - cloudflare
+  - route53
+
+identity:
+  - okta
+  - entra-id
+
+services:
+  public-api:
+    depends_on:
+      - cloudflare
+      - okta
+      - orders-db
+  worker:
+    depends_on:
+      - orders-queue
+      - aws
+
+databases:
+  orders-db:
+    provider: aws
+    depends_on:
+      - aws
+  analytics-db:
+    provider: gcp
+    depends_on:
+      - gcp
+
+queues:
+  orders-queue:
+    provider: azure
+    depends_on:
+      - azure
