@@ -28,6 +28,8 @@ Supported Terraform resource types are listed in
 - `aws_route53_zone` maps to `NodeType.DNS`
 - `aws_lb` maps to `NodeType.LOAD_BALANCER`
 - `aws_iam_role` maps to `NodeType.IDENTITY`
+- Common VPC route, route table, network ACL, security-group-rule, EKS access,
+  IAM attachment, and CloudWatch log group resources are also mapped.
 
 Unsupported resources are ignored. References to unsupported resources are also
 ignored so partially supported Terraform projects can still produce a useful
@@ -42,5 +44,7 @@ The parser extracts:
 - Provider addresses from provider blocks and resource `provider` attributes
 
 Edges use `Relationship.DEPENDS_ON`. If a supported resource references another
-supported resource type that is not present in the parsed files, ingestion fails
-with a `TerraformParseError`.
+supported resource through explicit `depends_on` and that target is not present
+in the parsed files, ingestion fails with a `TerraformParseError`. Missing
+implicit references are ignored so reusable Terraform modules can be parsed
+without the entire calling stack.

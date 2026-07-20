@@ -415,7 +415,10 @@ def _classify_node(node: Node) -> tuple[RiskCategory, ...]:
         text, ("secret", "secretsmanager", "keyvault", "vault")
     ):
         categories.append(RiskCategory.SECRETS_MANAGER)
-    if _contains_any(text, ("monitoring", "datadog", "prometheus", "grafana")):
+    if _contains_any(
+        text,
+        ("monitoring", "cloudwatch", "datadog", "prometheus", "grafana"),
+    ):
         categories.append(RiskCategory.MONITORING)
     if node.node_type == NodeType.NETWORK or _contains_any(
         text, ("vpc", "subnet", "network", "gateway", "security_group")

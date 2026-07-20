@@ -91,7 +91,17 @@ TERRAFORM_RESOURCE_MAPPINGS: Mapping[str, TerraformResourceMapping] = MappingPro
         ),
         "aws_iam_policy": TerraformResourceMapping(NodeType.IDENTITY, "aws"),
         "aws_iam_role": TerraformResourceMapping(NodeType.IDENTITY, "aws"),
+        "aws_iam_role_policy": TerraformResourceMapping(NodeType.IDENTITY, "aws"),
+        "aws_iam_role_policy_attachment": TerraformResourceMapping(
+            NodeType.IDENTITY,
+            "aws",
+        ),
         "aws_iam_user": TerraformResourceMapping(NodeType.IDENTITY, "aws"),
+        "aws_eks_access_entry": TerraformResourceMapping(NodeType.IDENTITY, "aws"),
+        "aws_eks_access_policy_association": TerraformResourceMapping(
+            NodeType.IDENTITY,
+            "aws",
+        ),
         "aws_db_instance": TerraformResourceMapping(NodeType.DATABASE, "aws"),
         "aws_dynamodb_table": TerraformResourceMapping(NodeType.DATABASE, "aws"),
         "aws_rds_cluster": TerraformResourceMapping(NodeType.DATABASE, "aws"),
@@ -105,15 +115,44 @@ TERRAFORM_RESOURCE_MAPPINGS: Mapping[str, TerraformResourceMapping] = MappingPro
         "aws_ebs_volume": TerraformResourceMapping(NodeType.STORAGE, "aws"),
         "aws_efs_file_system": TerraformResourceMapping(NodeType.STORAGE, "aws"),
         "aws_s3_bucket": TerraformResourceMapping(NodeType.STORAGE, "aws"),
+        "aws_autoscaling_group": TerraformResourceMapping(NodeType.COMPUTE, "aws"),
         "aws_ecs_service": TerraformResourceMapping(NodeType.SERVICE, "aws"),
         "aws_lambda_function": TerraformResourceMapping(NodeType.SERVICE, "aws"),
         "aws_eks_cluster": TerraformResourceMapping(NodeType.COMPUTE, "aws"),
+        "aws_eks_node_group": TerraformResourceMapping(NodeType.COMPUTE, "aws"),
         "aws_instance": TerraformResourceMapping(NodeType.COMPUTE, "aws"),
+        "aws_launch_template": TerraformResourceMapping(NodeType.COMPUTE, "aws"),
+        "aws_cloudwatch_log_group": TerraformResourceMapping(
+            NodeType.EXTERNAL,
+            "aws",
+        ),
         "aws_internet_gateway": TerraformResourceMapping(NodeType.NETWORK, "aws"),
         "aws_nat_gateway": TerraformResourceMapping(NodeType.NETWORK, "aws"),
+        "aws_network_acl": TerraformResourceMapping(NodeType.NETWORK, "aws"),
+        "aws_network_acl_rule": TerraformResourceMapping(NodeType.NETWORK, "aws"),
+        "aws_route": TerraformResourceMapping(NodeType.NETWORK, "aws"),
+        "aws_route_table": TerraformResourceMapping(NodeType.NETWORK, "aws"),
+        "aws_route_table_association": TerraformResourceMapping(
+            NodeType.NETWORK,
+            "aws",
+        ),
         "aws_security_group": TerraformResourceMapping(NodeType.NETWORK, "aws"),
         "aws_subnet": TerraformResourceMapping(NodeType.NETWORK, "aws"),
         "aws_vpc": TerraformResourceMapping(NodeType.NETWORK, "aws"),
+        "aws_vpc_endpoint": TerraformResourceMapping(NodeType.NETWORK, "aws"),
+        "aws_vpc_security_group_egress_rule": TerraformResourceMapping(
+            NodeType.NETWORK,
+            "aws",
+        ),
+        "aws_vpc_security_group_ingress_rule": TerraformResourceMapping(
+            NodeType.NETWORK,
+            "aws",
+        ),
+        "aws_vpn_gateway": TerraformResourceMapping(NodeType.NETWORK, "aws"),
+        "aws_vpn_gateway_route_propagation": TerraformResourceMapping(
+            NodeType.NETWORK,
+            "aws",
+        ),
         "azurerm_dns_zone": TerraformResourceMapping(NodeType.DNS, "azurerm"),
         "azurerm_lb": TerraformResourceMapping(
             NodeType.LOAD_BALANCER,
@@ -513,28 +552,16 @@ class TerraformParser:
         """Add dependency edges between supported Terraform resources."""
         edge_keys: set[tuple[str, str, Relationship]] = set()
         for resource in resources.values():
-            targets = (
-                *resource.explicit_dependencies,
-                *resource.references,
-            )
-            for target in targets:
+            for target in resource.explicit_dependencies:
                 if target not in resources:
                     self._reject_missing_supported_dependency(resource, target)
                     continue
+                _add_terraform_edge(topology, edge_keys, resource.address, target)
 
-                edge_key = (resource.address, target, Relationship.DEPENDS_ON)
-                if edge_key in edge_keys:
+            for target in resource.references:
+                if target not in resources:
                     continue
-
-                topology.add_edge(
-                    Edge(
-                        source=resource.address,
-                        target=target,
-                        relationship=Relationship.DEPENDS_ON,
-                        metadata={"source": "terraform"},
-                    )
-                )
-                edge_keys.add(edge_key)
+                _add_terraform_edge(topology, edge_keys, resource.address, target)
 
     def _reject_missing_supported_dependency(
         self,
@@ -551,6 +578,27 @@ class TerraformParser:
             "but it was not found in the parsed Terraform files"
         )
         raise TerraformParseError(message, source=resource.source)
+
+
+def _add_terraform_edge(
+    topology: Topology,
+    edge_keys: set[tuple[str, str, Relationship]],
+    source: str,
+    target: str,
+) -> None:
+    edge_key = (source, target, Relationship.DEPENDS_ON)
+    if edge_key in edge_keys:
+        return
+
+    topology.add_edge(
+        Edge(
+            source=source,
+            target=target,
+            relationship=Relationship.DEPENDS_ON,
+            metadata={"source": "terraform"},
+        )
+    )
+    edge_keys.add(edge_key)
 
 
 def parse_terraform_file(path: str | Path) -> Topology:

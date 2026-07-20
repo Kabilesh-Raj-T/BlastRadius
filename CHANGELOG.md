@@ -11,11 +11,15 @@ and this project uses semantic versioning.
 
 - Confidence levels and confidence reasons on risk findings and generated
   single-point-of-failure reports.
+- Terraform mappings for common AWS VPC route, network ACL, security group rule,
+  IAM attachment, EKS access, compute, and CloudWatch log group resources.
 
 ### Fixed
 
 - Docker Compose parsing now resolves simple variable defaults in `depends_on`
   and ignores local bind mounts as storage dependencies.
+- Terraform parsing now ignores missing implicit references while still
+  rejecting missing explicit `depends_on` targets.
 
 ## [1.0.0] - 2026-07-19
 

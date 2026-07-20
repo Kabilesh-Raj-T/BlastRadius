@@ -15,6 +15,7 @@ from chokepoint.parser import (
     parse_terraform_files,
     parse_terraform_text,
 )
+from chokepoint.report import RiskAnalyzer, RiskCategory, RiskLevel
 
 TERRAFORM_EXAMPLE = """
 provider "aws" {
@@ -58,6 +59,7 @@ resource "aws_route53_record" "frontend" {
   }
 }
 """
+EXPECTED_MONITORING_BLAST_RADIUS = 2
 
 
 def edge_set(payload: str) -> set[tuple[str, str, Relationship]]:
@@ -69,6 +71,16 @@ def test_resource_mapping_contains_required_examples() -> None:
     assert TERRAFORM_RESOURCE_MAPPINGS["aws_route53_zone"].node_type is NodeType.DNS
     assert TERRAFORM_RESOURCE_MAPPINGS["aws_lb"].node_type is NodeType.LOAD_BALANCER
     assert TERRAFORM_RESOURCE_MAPPINGS["aws_iam_role"].node_type is NodeType.IDENTITY
+    assert TERRAFORM_RESOURCE_MAPPINGS["aws_route"].node_type is NodeType.NETWORK
+    assert TERRAFORM_RESOURCE_MAPPINGS["aws_route_table"].node_type is NodeType.NETWORK
+    assert (
+        TERRAFORM_RESOURCE_MAPPINGS["aws_iam_role_policy_attachment"].node_type
+        is NodeType.IDENTITY
+    )
+    assert (
+        TERRAFORM_RESOURCE_MAPPINGS["aws_cloudwatch_log_group"].node_type
+        is NodeType.EXTERNAL
+    )
 
 
 def test_parse_terraform_resources_into_topology_nodes() -> None:
@@ -112,6 +124,106 @@ def test_parse_explicit_depends_on_and_implicit_references() -> None:
             Relationship.DEPENDS_ON,
         ),
     }
+
+
+def test_parse_common_vpc_and_eks_resources() -> None:
+    topology = parse_terraform_text(
+        """
+resource "aws_vpc" "main" {}
+resource "aws_subnet" "public" {
+  vpc_id = aws_vpc.main.id
+}
+resource "aws_route_table" "public" {
+  vpc_id = aws_vpc.main.id
+}
+resource "aws_route" "internet" {
+  route_table_id = aws_route_table.public.id
+}
+resource "aws_route_table_association" "public" {
+  subnet_id = aws_subnet.public.id
+  route_table_id = aws_route_table.public.id
+}
+resource "aws_network_acl" "main" {
+  vpc_id = aws_vpc.main.id
+}
+resource "aws_network_acl_rule" "ingress" {
+  network_acl_id = aws_network_acl.main.id
+}
+resource "aws_iam_role" "cluster" {}
+resource "aws_iam_role_policy_attachment" "cluster" {
+  role = aws_iam_role.cluster.name
+}
+resource "aws_eks_cluster" "main" {
+  role_arn = aws_iam_role.cluster.arn
+}
+resource "aws_eks_access_entry" "admin" {
+  cluster_name = aws_eks_cluster.main.name
+  principal_arn = aws_iam_role.cluster.arn
+}
+resource "aws_cloudwatch_log_group" "cluster" {}
+""",
+        source="main.tf",
+    )
+
+    assert topology.nodes["aws_route.internet"].node_type is NodeType.NETWORK
+    assert topology.nodes["aws_route_table.public"].node_type is NodeType.NETWORK
+    assert topology.nodes["aws_network_acl_rule.ingress"].node_type is NodeType.NETWORK
+    assert (
+        topology.nodes["aws_iam_role_policy_attachment.cluster"].node_type
+        is NodeType.IDENTITY
+    )
+    assert topology.nodes["aws_eks_access_entry.admin"].node_type is NodeType.IDENTITY
+    assert (
+        topology.nodes["aws_cloudwatch_log_group.cluster"].node_type
+        is NodeType.EXTERNAL
+    )
+    assert (
+        "aws_route_table_association.public",
+        "aws_route_table.public",
+        Relationship.DEPENDS_ON,
+    ) in edge_set_from_topology(topology)
+
+
+def test_implicit_references_to_missing_supported_resources_are_ignored() -> None:
+    topology = parse_terraform_text(
+        """
+resource "aws_instance" "web" {
+  subnet_id = aws_subnet.external.id
+  vpc_security_group_ids = [aws_security_group.external.id]
+}
+"""
+    )
+
+    assert set(topology.nodes) == {"aws_instance.web"}
+    assert topology.edges == []
+
+
+def test_shared_cloudwatch_log_group_is_monitoring_risk() -> None:
+    topology = parse_terraform_text(
+        """
+resource "aws_cloudwatch_log_group" "shared" {}
+resource "aws_lambda_function" "api" {
+  environment {
+    variables = {
+      LOG_GROUP = aws_cloudwatch_log_group.shared.name
+    }
+  }
+}
+resource "aws_ecs_service" "worker" {
+  depends_on = [aws_cloudwatch_log_group.shared]
+}
+"""
+    )
+
+    report = RiskAnalyzer().analyze(topology)
+    finding = next(
+        finding
+        for finding in report.findings
+        if finding.category is RiskCategory.MONITORING
+    )
+
+    assert finding.risk_level is RiskLevel.HIGH
+    assert finding.blast_radius == EXPECTED_MONITORING_BLAST_RADIUS
 
 
 def test_parse_multiple_tf_files_with_cross_file_references(tmp_path: Path) -> None:
