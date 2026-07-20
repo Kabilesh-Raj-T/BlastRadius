@@ -18,8 +18,8 @@ points, and exporting reports for engineering review.
 - Risk engine for shared DNS, identity, CDN, secrets, monitoring, networking,
   CI/CD, email, and single-service articulation risks.
 - CLI commands for `analyze`, `graph`, `report`, `validate`, `export`, and
-  `diff`.
-- Core exports for Markdown, JSON, terminal, CSV, and Mermaid.
+  `diff`, plus repository scanning with `scan`.
+- Core exports for Markdown, JSON, terminal, CSV, Mermaid, and SVG.
 
 ## Notes
 
@@ -32,14 +32,16 @@ analysis project.
 The project checks passed:
 
 ```text
-uv run black src tests
-uv run ruff check src tests
+uv run black --check src tests scripts
+uv run ruff check src tests scripts
 uv run mypy
-uv run pytest
+uv run pytest -q
 uv build
-pip install -e .
-pip install dist/chokepoint-1.0.0-py3-none-any.whl
+uv run python scripts/smoke_install.py --editable
+uv run python scripts/smoke_install.py --wheel --sdist
 ```
 
-Coverage is enforced at 95% or higher. CI also smoke-installs the built wheel
-and validates an example topology through the installed `chokepoint` command.
+Coverage is enforced at 95% or higher. CI runs on Ubuntu, Windows, and macOS
+for Python 3.12 and 3.13, then smoke-installs editable, wheel, and sdist
+artifacts before validating an example topology through the installed
+`chokepoint` command.

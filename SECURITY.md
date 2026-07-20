@@ -30,6 +30,6 @@ plan when possible, and coordinate disclosure timing with the reporter.
 
 ## Security Scope
 
-ChokePoint parses local infrastructure files and may invoke Graphviz without a
-shell for visualization rendering. Reports should focus on vulnerabilities in
-parsing, graph/report generation, CLI behavior, packaging, or generated output.
+ChokePoint parses local infrastructure files and generates local graph/report
+outputs. Reports should focus on vulnerabilities in parsing, graph/report
+generation, CLI behavior, packaging, or generated output.
