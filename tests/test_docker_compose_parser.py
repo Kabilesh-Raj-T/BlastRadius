@@ -112,6 +112,60 @@ services:
     assert _edge_ids(topology) == {("compose:service:api", "compose:service:db")}
 
 
+def test_parser_resolves_compose_variable_default_dependencies() -> None:
+    topology = parse_docker_compose_text(
+        """
+services:
+  api:
+    depends_on:
+      - ${APP_DB_HOST:-postgresql}
+      - ${CACHE_HOST-redis}
+      - ${UNRESOLVED_SERVICE}
+  postgresql:
+    image: postgres
+  redis:
+    image: redis
+""",
+        source="compose.yaml",
+    )
+
+    assert _edge_ids(topology) == {
+        ("compose:service:api", "compose:service:postgresql"),
+        ("compose:service:api", "compose:service:redis"),
+    }
+
+
+def test_parser_ignores_bind_mounts_but_keeps_named_volumes() -> None:
+    topology = parse_docker_compose_text(
+        """
+services:
+  api:
+    volumes:
+      - ./src:/app/src
+      - ../config:/app/config
+      - /var/run/docker.sock:/var/run/docker.sock
+      - app-data:/var/lib/app
+      - type: bind
+        source: ./fixtures/coredns
+        target: /etc/coredns
+      - type: volume
+        source: cache-data
+        target: /cache
+""",
+        source="compose.yaml",
+    )
+
+    assert sorted(topology.nodes) == [
+        "compose:service:api",
+        "compose:volume:app-data",
+        "compose:volume:cache-data",
+    ]
+    assert _edge_ids(topology) == {
+        ("compose:service:api", "compose:volume:app-data"),
+        ("compose:service:api", "compose:volume:cache-data"),
+    }
+
+
 def test_parser_deduplicates_support_resources_and_edges() -> None:
     topology = parse_docker_compose_text(
         """

@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import re
 from collections.abc import Mapping
 from pathlib import Path
 from typing import cast
@@ -9,6 +10,8 @@ from typing import cast
 import yaml
 
 from chokepoint.models import Edge, Node, NodeType, Relationship, Topology
+
+COMPOSE_DEFAULT_PATTERN = re.compile(r"^\$\{[^}:]+(?::-|-)(?P<default>[^}]+)\}$")
 
 
 class DockerComposeParseError(ValueError):
@@ -133,10 +136,32 @@ def _optional_mapping(value: object) -> Mapping[str, object]:
 
 def _depends_on(value: object) -> tuple[str, ...]:
     if isinstance(value, list):
-        return tuple(item for item in value if isinstance(item, str) and item)
+        return tuple(
+            dependency
+            for item in value
+            if isinstance(item, str)
+            for dependency in (_service_reference(item),)
+            if dependency is not None
+        )
     if isinstance(value, Mapping):
-        return tuple(key for key in value if isinstance(key, str) and key)
+        return tuple(
+            dependency
+            for key in value
+            if isinstance(key, str)
+            for dependency in (_service_reference(key),)
+            if dependency is not None
+        )
     return ()
+
+
+def _service_reference(value: str) -> str | None:
+    reference = value.strip()
+    if not reference:
+        return None
+    match = COMPOSE_DEFAULT_PATTERN.match(reference)
+    if match:
+        reference = match.group("default").strip()
+    return reference or None
 
 
 def _add_support_nodes(
@@ -150,7 +175,7 @@ def _add_support_nodes(
         ("volumes", NodeType.STORAGE),
         ("secrets", NodeType.SECRET),
     ):
-        for name in _compose_names(config.get(field_name)):
+        for name in _compose_names(config.get(field_name), field_name=field_name):
             node_id = f"compose:{field_name[:-1]}:{name}"
             if node_id in topology.nodes:
                 continue
@@ -171,7 +196,7 @@ def _add_support_edges(
     config: Mapping[str, object],
 ) -> None:
     for field_name in ("networks", "volumes", "secrets"):
-        for name in _compose_names(config.get(field_name)):
+        for name in _compose_names(config.get(field_name), field_name=field_name):
             _try_add_edge(
                 topology,
                 source=_service_id(service_name),
@@ -179,20 +204,53 @@ def _add_support_edges(
             )
 
 
-def _compose_names(value: object) -> tuple[str, ...]:
+def _compose_names(value: object, *, field_name: str) -> tuple[str, ...]:
     if isinstance(value, list):
         names: list[str] = []
         for item in value:
             if isinstance(item, str):
-                names.append(item.split(":", maxsplit=1)[0])
+                name = _compose_resource_name(item, field_name=field_name)
+                if name is not None:
+                    names.append(name)
             elif isinstance(item, Mapping):
                 source = item.get("source") or item.get("target")
-                if isinstance(source, str) and source:
+                if (
+                    isinstance(source, str)
+                    and source
+                    and not _is_ignored_volume_source(
+                        source,
+                        field_name=field_name,
+                        resource_type=item.get("type"),
+                    )
+                ):
                     names.append(source)
         return tuple(names)
     if isinstance(value, Mapping):
         return tuple(key for key in value if isinstance(key, str) and key)
     return ()
+
+
+def _compose_resource_name(value: str, *, field_name: str) -> str | None:
+    name = value.split(":", maxsplit=1)[0].strip()
+    if not name:
+        return None
+    if _is_ignored_volume_source(name, field_name=field_name, resource_type=None):
+        return None
+    return name
+
+
+def _is_ignored_volume_source(
+    value: str,
+    *,
+    field_name: str,
+    resource_type: object,
+) -> bool:
+    if field_name != "volumes":
+        return False
+    if resource_type == "bind":
+        return True
+    normalized = value.replace("\\", "/")
+    return normalized.startswith(("/", "./", "../", "~"))
 
 
 def _try_add_edge(topology: Topology, *, source: str, target: str) -> None:

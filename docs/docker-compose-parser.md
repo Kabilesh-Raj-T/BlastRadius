@@ -20,9 +20,13 @@ Available entry points:
 
 - Compose services as service nodes.
 - `depends_on` relationships between services.
+- Compose variable defaults in `depends_on`, such as
+  `${APP_DB_HOST:-postgresql}`.
 - Referenced networks as network nodes.
 - Referenced volumes as storage nodes.
 - Referenced secrets as secret nodes.
 
 This parser is intentionally small. It is useful for demos and simple local
 Compose files, but it does not try to fully emulate Docker Compose resolution.
+Local bind mounts such as `./src:/app/src` are ignored because they usually
+represent source-code paths, not shared infrastructure dependencies.

@@ -181,6 +181,41 @@ def test_structural_single_point_explains_articulation_without_risk_rule() -> No
     assert "structural cut point" in report.single_points_of_failure[0].why_it_matters
 
 
+def test_structural_single_point_confidence_uses_explicit_dependencies() -> None:
+    topology = Topology()
+    topology.add_node(
+        Node(
+            id="api",
+            name="API",
+            provider="application",
+            node_type=NodeType.SERVICE,
+        )
+    )
+    for service_id in ("frontend", "worker"):
+        topology.add_node(
+            Node(
+                id=service_id,
+                name=service_id,
+                provider="application",
+                node_type=NodeType.SERVICE,
+            )
+        )
+        topology.add_edge(
+            Edge(
+                source=service_id,
+                target="api",
+                relationship=Relationship.DEPENDS_ON,
+            )
+        )
+
+    report = generate_security_report(topology)
+
+    point = report.single_points_of_failure[0]
+    assert point.node_id == "api"
+    assert point.confidence.value == "medium"
+    assert "multiple explicit depends_on edges" in point.confidence_reason
+
+
 def shared_dns_topology() -> Topology:
     topology = Topology()
     topology.add_node(

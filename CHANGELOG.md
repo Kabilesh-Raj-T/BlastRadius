@@ -12,6 +12,11 @@ and this project uses semantic versioning.
 - Confidence levels and confidence reasons on risk findings and generated
   single-point-of-failure reports.
 
+### Fixed
+
+- Docker Compose parsing now resolves simple variable defaults in `depends_on`
+  and ignores local bind mounts as storage dependencies.
+
 ## [1.0.0] - 2026-07-19
 
 Portfolio milestone focused on the core infrastructure graph model, CLI, and

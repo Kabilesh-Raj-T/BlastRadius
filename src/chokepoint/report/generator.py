@@ -10,7 +10,7 @@ from rich.panel import Panel
 from rich.table import Table
 
 from chokepoint.graph import AnalysisReport, GraphAnalyzer, GraphBuilder
-from chokepoint.models import Edge, Node, NodeType, Topology
+from chokepoint.models import Edge, Node, NodeType, Relationship, Topology
 from chokepoint.report.risk import (
     ConfidenceLevel,
     RiskAnalyzer,
@@ -23,6 +23,7 @@ from chokepoint.report.risk import (
 CRITICAL_SCORE_THRESHOLD = 80
 HIGH_SCORE_THRESHOLD = 60
 HUMAN_JOIN_PAIR_COUNT = 2
+STRUCTURAL_CONFIDENCE_DEPENDENT_THRESHOLD = 2
 SEVERITY_SORT_RANK: dict[RiskLevel | None, int] = {
     RiskLevel.CRITICAL: 4,
     RiskLevel.HIGH: 3,
@@ -376,6 +377,7 @@ def _single_points_of_failure(
         node = topology.nodes[node_id]
         neighbors = topology.neighbors(node_id, direction="both")
         impacted_nodes = tuple(sorted(neighbor.id for neighbor in neighbors))
+        confidence, confidence_reason = _structural_confidence(topology, node_id)
         points.append(
             SinglePointOfFailure(
                 node_id=node.id,
@@ -384,11 +386,8 @@ def _single_points_of_failure(
                 node_type=node.node_type,
                 severity=None,
                 category="structural_articulation",
-                confidence=ConfidenceLevel.LOW,
-                confidence_reason=(
-                    "Based only on graph articulation structure; verify runtime "
-                    "impact with service owners."
-                ),
+                confidence=confidence,
+                confidence_reason=confidence_reason,
                 blast_radius=len(impacted_nodes),
                 impacted_nodes=impacted_nodes,
                 why_it_matters=(
@@ -510,6 +509,29 @@ def _risk_single_point_explanation(
     return (
         f"{node.name} is a shared {category_text} dependency{provider_text}. "
         f"If it fails, {impacted_text} may be affected. {category_impacts}"
+    )
+
+
+def _structural_confidence(
+    topology: Topology,
+    node_id: str,
+) -> tuple[ConfidenceLevel, str]:
+    """Return confidence for a structural articulation-only finding."""
+    direct_dependents = {
+        edge.source
+        for edge in topology.edges
+        if edge.target == node_id and edge.relationship == Relationship.DEPENDS_ON
+    }
+    if len(direct_dependents) >= STRUCTURAL_CONFIDENCE_DEPENDENT_THRESHOLD:
+        return (
+            ConfidenceLevel.MEDIUM,
+            "Based on graph articulation structure plus multiple explicit "
+            "depends_on edges; verify runtime impact with service owners.",
+        )
+    return (
+        ConfidenceLevel.LOW,
+        "Based only on graph articulation structure; verify runtime impact with "
+        "service owners.",
     )
 
 
