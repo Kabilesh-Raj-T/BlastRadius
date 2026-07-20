@@ -69,28 +69,30 @@ The repository uses modern Python engineering practices:
 Install the development environment:
 
 ```bash
-uv sync --extra dev
+uv sync
 ```
 
 Run the checks used by CI:
 
 ```bash
-uv sync --extra dev
+uv sync
 uv run black --check src tests
 uv run ruff check src tests
 uv run mypy
 uv run pytest -q
 ```
 
-Use `uv run pytest -q`, not a globally installed `pytest` command. The project
-uses a `src/` layout and relies on uv to create the Python 3.12+ environment and
-install test dependencies before collection.
+Use `uv run ...` for commands that must work from a completely clean shell. The
+project uses a `src/` layout and relies on uv to create the Python 3.12+
+environment and install test dependencies before collection.
 
-If you prefer plain `pytest -q`, activate the uv virtual environment first:
+If you prefer plain commands such as `pytest -q` or `chokepoint analyze ...`,
+activate the uv virtual environment first:
 
 ```powershell
 .\.venv\Scripts\Activate.ps1
 pytest -q
+chokepoint analyze examples/topology-basic.yaml
 ```
 
 Install local hooks:

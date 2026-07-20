@@ -9,7 +9,7 @@ Describe the change and why it is needed.
 - [ ] `uv run black src tests` passes.
 - [ ] `uv run ruff check src tests` passes.
 - [ ] `uv run mypy` passes.
-- [ ] `uv run pytest` passes.
+- [ ] `uv run pytest -q` passes.
 
 ## Risk
 

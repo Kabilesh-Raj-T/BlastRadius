@@ -26,14 +26,14 @@ jobs:
           python-version: "3.12"
 
       - name: Install dependencies
-        run: uv sync --frozen --extra dev
+        run: uv sync --frozen
 
       - name: Run quality gates
         run: |
           uv run black --check src tests
           uv run ruff check src tests
           uv run mypy
-          uv run pytest
+          uv run pytest -q
 
       - name: Build package
         run: uv build
