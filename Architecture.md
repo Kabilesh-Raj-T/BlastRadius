@@ -9,10 +9,24 @@ command-line concerns remain isolated around that core.
 ```text
 src/chokepoint/
     cli/
-    parser/
     graph/
     models/
+    parser/
     report/
+    utils/
+    visualization/
+```
+
+## System Diagram
+
+```mermaid
+flowchart LR
+    cli["CLI"] --> parser["Parsers"]
+    parser --> models["Topology Models"]
+    models --> graph["Graph Engine"]
+    graph --> report["Risk Reports"]
+    report --> cli
+    report --> exports["Exports"]
 ```
 
 ## Boundaries
@@ -21,6 +35,9 @@ src/chokepoint/
 - `parser` converts external infrastructure descriptions into domain models.
 - `graph` builds and analyzes dependency graphs from domain models.
 - `report` turns analysis results into user-facing report data.
+- `utils` contains shared formatting helpers used across adapters.
+- `visualization` reserves the visualization boundary for graph rendering
+  concerns.
 - `cli` owns command-line input and delegates work to application services.
 
 ## Dependency Direction

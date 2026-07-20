@@ -81,6 +81,15 @@ class DependencyGraphEdge(BaseModel):
     relationship: str
 
 
+class DependencyGraphNode(BaseModel):
+    """Human-readable dependency graph node for reports."""
+
+    model_config = ConfigDict(frozen=True)
+
+    node_id: str
+    name: str
+
+
 class SinglePointOfFailure(BaseModel):
     """Dependency or graph structure that concentrates failure impact."""
 
@@ -111,6 +120,7 @@ class GeneratedReport(BaseModel):
     articulation_points: tuple[str, ...]
     bridge_edges: tuple[tuple[str, str], ...]
     recommendations: tuple[str, ...]
+    dependency_nodes: tuple[DependencyGraphNode, ...]
     dependency_graph: tuple[DependencyGraphEdge, ...]
     single_points_of_failure: tuple[SinglePointOfFailure, ...]
     dependency_table: tuple[DependencyTableRow, ...]
@@ -159,6 +169,7 @@ class SecurityReportGenerator:
         graph_report = GraphAnalyzer().analyze(graph)
         risk_report = RiskAnalyzer().analyze(topology)
         dependency_rows = _dependency_rows(topology)
+        dependency_nodes = _dependency_graph_nodes(topology)
         dependency_graph = _dependency_graph_edges(topology)
         critical_dependencies = tuple(
             finding
@@ -185,6 +196,7 @@ class SecurityReportGenerator:
             articulation_points=graph_report.articulation_points,
             bridge_edges=graph_report.bridges,
             recommendations=recommendations,
+            dependency_nodes=dependency_nodes,
             dependency_graph=dependency_graph,
             single_points_of_failure=single_points,
             dependency_table=dependency_rows,
@@ -348,6 +360,14 @@ def _dependency_graph_edges(topology: Topology) -> tuple[DependencyGraphEdge, ..
             )
         )
     return tuple(edges)
+
+
+def _dependency_graph_nodes(topology: Topology) -> tuple[DependencyGraphNode, ...]:
+    """Build human-readable dependency graph nodes."""
+    return tuple(
+        DependencyGraphNode(node_id=node.id, name=node.name)
+        for node in sorted(topology.nodes.values(), key=lambda item: item.id)
+    )
 
 
 def _dependency_row(edge: Edge, source: Node, target: Node) -> DependencyTableRow:
@@ -768,22 +788,20 @@ def _blast_radius_markdown(blast_radius: dict[str, int]) -> list[str]:
 
 def _mermaid_graph(report: GeneratedReport) -> str:
     """Render a Mermaid dependency graph with SPOF labels."""
-    if not report.dependency_graph:
+    if not report.dependency_nodes:
         return 'flowchart LR\n  empty["No dependencies declared"]'
 
     single_points = {point.node_id: point for point in report.single_points_of_failure}
-    nodes: dict[str, str] = {}
-    for edge in report.dependency_graph:
-        nodes[edge.source] = edge.source_name
-        nodes[edge.target] = edge.target_name
 
     lines = ["flowchart LR"]
-    for node_id, name in sorted(nodes.items()):
-        point = single_points.get(node_id)
-        label = name
+    for node in report.dependency_nodes:
+        point = single_points.get(node.node_id)
+        label = node.name
         if point is not None:
-            label = f"{name}\\nSPOF: {_point_summary(point)}"
-        lines.append(f'  {mermaid_node_id(node_id)}["{escape_mermaid_label(label)}"]')
+            label = f"{node.name}\\nSPOF: {_point_summary(point)}"
+        lines.append(
+            f'  {mermaid_node_id(node.node_id)}["{escape_mermaid_label(label)}"]'
+        )
 
     for edge in report.dependency_graph:
         lines.append(

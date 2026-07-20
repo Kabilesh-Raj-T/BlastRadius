@@ -27,6 +27,7 @@ def test_generate_security_report_returns_structured_report() -> None:
     assert report.title == "ChokePoint Security Report"
     assert report.risk_score == EXPECTED_RISK_SCORE
     assert report.critical_dependencies
+    assert report.dependency_nodes[0].node_id == "aws-api"
     assert report.dependency_graph[0].source == "aws-api"
     assert len(report.single_points_of_failure) == 1
     assert report.single_points_of_failure[0].node_id == "cloudflare"
@@ -49,6 +50,7 @@ def test_report_json_contains_nested_security_context() -> None:
     assert payload["executive_summary"].startswith("ChokePoint analyzed")
     assert payload["risk_report"]["finding_count"] >= 1
     assert payload["graph_report"]["node_count"] == EXPECTED_NODE_COUNT
+    assert payload["dependency_nodes"][0]["node_id"] == "aws-api"
     assert payload["dependency_graph"][0]["target"] == "cloudflare"
     assert payload["single_points_of_failure"][0]["why_it_matters"]
     assert payload["single_points_of_failure"][0]["confidence"] == "high"
@@ -82,6 +84,22 @@ def test_report_markdown_is_github_security_report_friendly() -> None:
         "| Level | Category | Node | Score | Blast Radius | Confidence | Explanation |"
         in markdown
     )
+
+
+def test_report_markdown_dependency_graph_includes_isolated_nodes() -> None:
+    topology = shared_dns_topology()
+    topology.add_node(
+        Node(
+            id="unused-region",
+            name="Unused Region",
+            provider="aws",
+            node_type=NodeType.EXTERNAL,
+        )
+    )
+
+    markdown = generate_security_report(topology).to_markdown()
+
+    assert 'n_unused_region["Unused Region"]' in markdown
 
 
 def test_terminal_report_renders_expected_sections() -> None:

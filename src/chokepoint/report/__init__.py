@@ -8,6 +8,7 @@ from chokepoint.report.export import (
 )
 from chokepoint.report.generator import (
     DependencyGraphEdge,
+    DependencyGraphNode,
     DependencyTableRow,
     GeneratedReport,
     SecurityReportGenerator,
@@ -29,6 +30,7 @@ __all__ = [
     "ConfidenceLevel",
     "DependencyChain",
     "DependencyGraphEdge",
+    "DependencyGraphNode",
     "DependencyTableRow",
     "GeneratedReport",
     "ReportExporter",

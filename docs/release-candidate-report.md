@@ -5,7 +5,7 @@ Review date: 2026-07-20
 
 ## Readiness Score
 
-Score: 96/100
+Score: 98/100
 
 ChokePoint is ready for a public release candidate. The package installs from a
 clean environment, the CLI entry points are configured, strict quality gates are
@@ -25,6 +25,8 @@ Python and operating system matrix.
 | Medium | Tooling | Ruff source configuration did not include `scripts`, even though CI linted scripts explicitly. | Fixed |
 | Medium | Documentation | Release notes, README, technical debt report, and pull request checklist had stale verification commands. | Fixed |
 | Medium | Security Docs | Security policy mentioned Graphviz even though the main branch uses local graph/report output without Graphviz invocation. | Fixed |
+| Medium | Reports | Markdown report dependency graphs omitted isolated topology nodes. | Fixed |
+| Medium | Documentation | README screenshot, architecture diagram, changelog, project tree, and security issue link needed release alignment. | Fixed |
 | Low | Release Automation | The release workflow builds and uploads artifacts, but does not publish to PyPI automatically. | Accepted |
 | Low | Plugin Architecture | The main branch stays focused on the core analyzer and does not expose a broad plugin API. | Accepted |
 | Low | Performance | Exact centrality on very large graphs can be expensive, which is inherent to the selected NetworkX algorithms. | Accepted |
@@ -36,10 +38,13 @@ Python and operating system matrix.
 - Packaging: `pyproject.toml` uses Hatchling, package discovery points to
   `src/chokepoint`, and the project includes a `py.typed` marker.
 - Public API: The module imports cleanly and exposes the package version.
+- Public report API: Structured reports expose dependency graph nodes and edges
+  so Markdown, JSON, and terminal outputs can represent complete topologies.
 - CLI: `chokepoint` is configured as a console script and `python -m
   chokepoint` delegates to the CLI.
 - Testing: Unit and integration tests cover imports, parsers, graph analysis,
-  risk reports, exports, examples, repository scanning, and CLI behavior.
+  risk reports, exports, examples, repository scanning, CLI behavior, and
+  complete report graph rendering.
 - Dependency management: Runtime dependencies are bounded, and development
   dependencies are pinned through the uv lockfile.
 - Security: Production parsing uses safe libraries and avoids shell execution.

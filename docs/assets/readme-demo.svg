@@ -1,0 +1,33 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<svg xmlns="http://www.w3.org/2000/svg" width="960" height="520" viewBox="0 0 960 520" role="img" aria-label="ChokePoint CLI demo showing a dependency graph and single points of failure">
+  <rect width="960" height="520" rx="12" fill="#0f172a"/>
+  <rect x="28" y="28" width="904" height="464" rx="8" fill="#111827" stroke="#334155"/>
+  <text x="52" y="68" fill="#93c5fd" font-family="Consolas, 'Courier New', monospace" font-size="18">uv run chokepoint analyze examples/basic.yaml --markdown</text>
+  <text x="52" y="116" fill="#f8fafc" font-family="Arial, sans-serif" font-size="26" font-weight="700">ChokePoint Security Report</text>
+  <text x="52" y="154" fill="#cbd5e1" font-family="Arial, sans-serif" font-size="16">Risk score: 0/100 - 6 nodes - 3 dependency edges</text>
+  <g font-family="Arial, sans-serif" font-size="14">
+    <rect x="72" y="214" width="132" height="48" rx="6" fill="#e0f2fe" stroke="#0284c7"/>
+    <text x="94" y="244" fill="#0f172a" font-weight="700">Cloudflare</text>
+    <rect x="302" y="214" width="132" height="48" rx="6" fill="#dcfce7" stroke="#16a34a"/>
+    <text x="334" y="244" fill="#0f172a" font-weight="700">Frontend</text>
+    <rect x="532" y="214" width="132" height="48" rx="6" fill="#e0f2fe" stroke="#0284c7"/>
+    <text x="578" y="244" fill="#0f172a" font-weight="700">Okta</text>
+    <rect x="302" y="334" width="132" height="48" rx="6" fill="#e5e7eb" stroke="#64748b"/>
+    <text x="335" y="364" fill="#0f172a" font-weight="700">Database</text>
+    <rect x="532" y="334" width="132" height="48" rx="6" fill="#e0f2fe" stroke="#0284c7"/>
+    <text x="582" y="364" fill="#0f172a" font-weight="700">AWS</text>
+    <path d="M302 238 L204 238" stroke="#f97316" stroke-width="3" marker-end="url(#arrow)"/>
+    <path d="M434 238 L532 238" stroke="#f97316" stroke-width="3" marker-end="url(#arrow)"/>
+    <path d="M434 358 L532 358" stroke="#f97316" stroke-width="3" marker-end="url(#arrow)"/>
+  </g>
+  <rect x="720" y="184" width="160" height="116" rx="8" fill="#1f2937" stroke="#475569"/>
+  <circle cx="742" cy="218" r="7" fill="#ef4444"/>
+  <text x="760" y="223" fill="#f8fafc" font-family="Arial, sans-serif" font-size="14">Articulation point</text>
+  <circle cx="742" cy="254" r="7" fill="#f97316"/>
+  <text x="760" y="259" fill="#f8fafc" font-family="Arial, sans-serif" font-size="14">Bridge edge</text>
+  <defs>
+    <marker id="arrow" markerWidth="10" markerHeight="8" refX="9" refY="4" orient="auto">
+      <path d="M0,0 L10,4 L0,8 Z" fill="#f97316"/>
+    </marker>
+  </defs>
+</svg>

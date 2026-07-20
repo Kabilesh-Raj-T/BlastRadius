@@ -15,6 +15,8 @@ Run the analyzer against one of the included examples:
 uv run chokepoint analyze examples/basic.yaml --markdown
 ```
 
+![ChokePoint CLI demo](docs/assets/readme-demo.svg)
+
 The report shows:
 
 - a Mermaid dependency graph
@@ -34,7 +36,7 @@ The report shows:
 - Converts infrastructure dependencies into a NetworkX graph.
 - Detects articulation points, bridge edges, connected components, cycles, and
   centrality.
-- Generates terminal, Markdown, JSON, CSV, and Mermaid output.
+- Generates terminal, Markdown, JSON, CSV, Mermaid, and SVG output.
 - Labels findings with high, medium, or low confidence so inferred claims can be
   reviewed before action.
 - Provides a Click/Rich CLI for local analysis.
