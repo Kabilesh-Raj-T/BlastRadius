@@ -27,6 +27,154 @@ The report shows:
 - articulation points and bridge edges
 - blast radius and dependency chains
 
+## How To Use BlastRadius
+
+BlastRadius works best as a local architecture-review tool. Give it a topology
+file or a repository, then review the generated dependency-risk report with the
+people who own the services.
+
+### 1. Install the project
+
+Use `uv` from the repository root:
+
+```bash
+uv sync
+```
+
+Then run commands through `uv`:
+
+```bash
+uv run chokepoint --help
+```
+
+The project is branded as BlastRadius, but the Python package and CLI command
+remain `chokepoint` for the 1.0.0 release.
+
+### 2. Create a topology file
+
+Start with a small `topology.yaml` that lists infrastructure dependencies:
+
+```yaml
+clouds:
+  - aws
+  - azure
+
+dns:
+  - cloudflare
+
+identity:
+  - okta
+
+services:
+  frontend:
+    depends_on:
+      - cloudflare
+      - okta
+
+  api:
+    depends_on:
+      - aws
+      - okta
+
+database:
+  depends_on:
+    - aws
+```
+
+This means `frontend` depends on Cloudflare and Okta, `api` depends on AWS and
+Okta, and `database` depends on AWS.
+
+### 3. Validate the input
+
+```bash
+uv run chokepoint validate topology.yaml
+```
+
+Expected result:
+
+```text
+Valid topology: 7 node(s), 5 edge(s)
+```
+
+If the file is malformed, BlastRadius prints a clear error with the file and
+location whenever possible.
+
+### 4. Analyze dependency risk
+
+```bash
+uv run chokepoint analyze topology.yaml
+```
+
+Use Markdown when you want a GitHub-friendly report:
+
+```bash
+uv run chokepoint analyze topology.yaml --markdown
+```
+
+Use JSON when another tool needs to consume the result:
+
+```bash
+uv run chokepoint analyze topology.yaml --json
+```
+
+The report can include:
+
+- shared dependencies such as DNS, identity, cloud, database, and CI/CD nodes
+- hidden single points of failure
+- articulation points that disconnect parts of the graph
+- bridge edges with no alternate path
+- affected nodes and dependency chains
+- confidence labels explaining how strongly the tool trusts a finding
+- recommendations for resilience review
+
+### 5. View or export the graph
+
+Get graph metrics:
+
+```bash
+uv run chokepoint graph topology.yaml
+uv run chokepoint graph topology.yaml --json
+```
+
+Export graph/report artifacts:
+
+```bash
+uv run chokepoint export topology.yaml --format mermaid
+uv run chokepoint export topology.yaml --format svg > dependency-graph.svg
+uv run chokepoint export topology.yaml --format csv > dependencies.csv
+```
+
+### 6. Scan an existing repository
+
+BlastRadius can scan a repository for supported files such as topology YAML,
+Terraform, and Docker Compose:
+
+```bash
+uv run chokepoint scan /path/to/repo --markdown
+```
+
+Repository scanning is best-effort. For real systems, add a YAML topology file
+or overlay for external dependencies that are not visible in code, such as DNS
+providers, identity providers, payment providers, CI/CD, monitoring, and
+secrets managers.
+
+### 7. Interpret the results
+
+Treat the output as an architecture-review aid, not as absolute production
+truth. A good workflow is:
+
+```text
+Run BlastRadius
+Add missing external dependencies
+Review findings with service owners
+Prioritize high-blast-radius dependencies
+Track resilience improvements
+```
+
+For example, a report might show that Okta is shared by several services, or
+that a frontend service is an articulation point. That does not automatically
+mean the system is broken; it means the dependency deserves review.
+
 ## Core Features
 
 - Parses YAML infrastructure dependency files.
